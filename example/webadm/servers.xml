@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Servers>
+    <LdapServer name="LDAP Server"
+                host="ldap"
+                port="389"
+                encryption="NONE"
+                ca_file="" />
+
+    <SqlServer name="SQL Server"
+               type="PostgreSQL"
+               host="db"
+               user="webadm"
+               password="password"
+               database="webadm"
+               encryption="NONE" />
+
+    <SessionServer name="Session Server"
+                   host="127.0.0.1"
+                   port="4000"
+                   secret="secret" />
+
+    <PkiServer name="PKI Server"
+               host="127.0.0.1"
+               port="5000"
+               secret="secret" />
+
+</Servers>
