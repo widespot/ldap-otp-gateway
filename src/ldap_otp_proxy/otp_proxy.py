@@ -15,8 +15,8 @@ class OtpProxy(ProxyBase):
 
     def __init__(self):
         super().__init__()
-        from .otp.soap_rcdevs import Otp
-        self.otp = Otp()
+
+        self.otp = config.OTP()
 
     def connectionLost(self, reason):
         super().connectionLost(reason)

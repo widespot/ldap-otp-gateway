@@ -1,3 +1,5 @@
+import importlib
+import logging
 import os
 
 # BACKEND SETTINGS
@@ -18,8 +20,8 @@ except ValueError:
 
 #LDAP_PROXY_SSL_KEY_PATH = '/Users/raphaeljoie/Workspace/github.com/widespot/ldap-otp-proxy/example/certs/server.key.pem'
 #LDAP_PROXY_SSL_CERT_PATH = '/Users/raphaeljoie/Workspace/github.com/widespot/ldap-otp-proxy/example/certs/server.crt.pem'
-LDAP_PROXY_SSL_KEY_PATH = './certs/server.key.pem'
-LDAP_PROXY_SSL_CERT_PATH = './certs/server.crt.pem'
+LDAP_PROXY_SSL_KEY_PATH = os.getenv('LDAP_PROXY_SSL_KEY_PATH', './certs/server.key.pem')
+LDAP_PROXY_SSL_CERT_PATH = os.getenv('LDAP_PROXY_SSL_CERT_PATH', './certs/server.crt.pem')
 
 generate_certificates = False
 if not os.path.isabs(LDAP_PROXY_SSL_KEY_PATH):
@@ -40,6 +42,7 @@ elif generate_certificates:
 if generate_certificates:
     from OpenSSL import crypto, SSL
 
+    logging.info("SSL cert and key files not found. Generating it ...")
     def cert_gen(
             emailAddress="emailAddress",
             commonName="commonName",
@@ -80,9 +83,8 @@ if generate_certificates:
 
 
 # OTP SETTINGS
-OTP_PROTOCOL = os.getenv('OTP_PROTOCOL', 'http')
-OTP_HOST = os.getenv('OTP_HOST', 'localhost')
-OTP_PORT = os.getenv('OTP_PORT', '8080')
-OTP_ENDPOINT = os.getenv('OTP_ENDPOINT', 'openotp/')
+OTP_MODULE_NAME = os.getenv('OTP_MODULE_NAME', 'ldap_otp_proxy.otp.rcdevs_soap')
+OTP = getattr(importlib.import_module(OTP_MODULE_NAME), 'Otp')
+logging.info(f"OTP backend loaded: {OTP_MODULE_NAME}")
 # Experimental
 OTP_BIND = False

@@ -6,11 +6,11 @@ from ldaptor.protocols.ldap.ldapclient import LDAPClient
 from ldaptor.protocols.ldap.ldapconnector import connectToLDAPEndpoint
 from twisted.internet import protocol, reactor, ssl
 
-from . import config
-from .otp_proxy import OtpProxy
-
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+
+from . import config
+from .otp_proxy import OtpProxy
 
 OTP_REQUEST_ATTR = "otp"
 
@@ -65,9 +65,9 @@ def run():
 
     factory.protocol = build_protocol
     factory_ssl.protocol = build_protocol_ssl
-    logging.info(f"- prepare unsecure frontend")
+    logging.info(f"- prepare unsecure frontend listening on port :{config.LDAP_PROXY_PORT}")
     reactor.listenTCP(config.LDAP_PROXY_PORT, factory)
-    logging.info(f"- prepare SSL frontend")
+    logging.info(f"- prepare SSL frontend listening on port :{config.LDAP_PROXY_SSL_PORT}")
     reactor.listenSSL(config.LDAP_PROXY_SSL_PORT, factory_ssl,
                       ssl.DefaultOpenSSLContextFactory(
                           config.LDAP_PROXY_SSL_KEY_PATH, config.LDAP_PROXY_SSL_CERT_PATH)

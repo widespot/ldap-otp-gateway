@@ -1,13 +1,18 @@
 import logging
-from xml.etree import ElementTree
+import os
 
 import requests
 
-from .. import config
 from .base_otp import BaseOtp
 
 from xml.dom import minidom
 from xml.dom.minidom import Node
+
+
+OTP_PROTOCOL = os.getenv('OTP_PROTOCOL', 'http')
+OTP_HOST = os.getenv('OTP_HOST', 'localhost')
+OTP_PORT = os.getenv('OTP_PORT', '8080')
+OTP_ENDPOINT = os.getenv('OTP_ENDPOINT', 'openotp/')
 
 
 def remove_blanks(node):
@@ -41,6 +46,7 @@ SUCCESS_RESPONSE_TXT = """<?xml version="1.0" encoding="UTF-8"?>
 """
 SUCCESS_RESPONSE_NORM_TXT = normalize(SUCCESS_RESPONSE_TXT)
 
+
 class Otp(BaseOtp):
     """
     Example success response:
@@ -59,7 +65,7 @@ class Otp(BaseOtp):
     ```
     """
     def __init__(self):
-        self.uri = f"{config.OTP_PROTOCOL}://{config.OTP_HOST}:{config.OTP_PORT}/{config.OTP_ENDPOINT}"
+        self.uri = f"{OTP_PROTOCOL}://{OTP_HOST}:{OTP_PORT}/{OTP_ENDPOINT}"
         logging.debug(f"uri={self.uri}")
 
     def verify(self, username, password, otp) -> bool:
