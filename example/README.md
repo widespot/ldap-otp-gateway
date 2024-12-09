@@ -12,7 +12,7 @@
    ```
    
 ```shell
-python -m ldap-otp-proxy.run
+python -m ldap_otp_gateway.run
 ```
 
 ## Troubleshoot

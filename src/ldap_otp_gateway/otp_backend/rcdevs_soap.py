@@ -3,7 +3,7 @@ import os
 
 import requests
 
-from .base_otp import BaseOtp
+from .base_otp_backend import BaseOtpBackend
 
 from xml.dom import minidom
 from xml.dom.minidom import Node
@@ -47,7 +47,7 @@ SUCCESS_RESPONSE_TXT = """<?xml version="1.0" encoding="UTF-8"?>
 SUCCESS_RESPONSE_NORM_TXT = normalize(SUCCESS_RESPONSE_TXT)
 
 
-class Otp(BaseOtp):
+class OtpBackend(BaseOtpBackend):
     """
     Example success response:
     ```

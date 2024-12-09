@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ldap-otp-proxy"
+name = "ldap-otp-gateway"
 version = "0.1.0"
 description = ""
 authors = ["raphaeljoie <9681129+raphaeljoie@users.noreply.github.com>"]
@@ -14,7 +14,7 @@ twisted = "^24.10.0"
 requests = "^2.32.3"
 
 [tool.poetry.scripts]
-ldap-otp-proxy = 'ldap_otp_proxy.run:run'
+ldap-otp-gateway = 'ldap_otp_gateway.run:run'
 
 [build-system]
 requires = ["poetry-core"]

@@ -5,47 +5,47 @@ from ldaptor.protocols.ldap import ldaperrors
 from ldaptor.protocols.pureldap import LDAPBindRequest, LDAPBindResponse
 from twisted.internet.defer import Deferred
 
-from ldap_otp_proxy import OtpProxy
-from ldap_otp_proxy.otp.base_otp import BaseOtp
-from ldap_otp_proxy.otp.dummy_static import Otp as DummyStaticOtp
-from ldap_otp_proxy.gateway_filter.base_gateway_filter import BaseGatewayFilter
-from ldap_otp_proxy.otp_extractor.base_otp_extractor import BaseOTPExtractor
-from ldap_otp_proxy.otp_extractor.suffix import OtpExtractor as SuffixOtpExtractor
+from ldap_otp_gateway import OtpGateway
+from ldap_otp_gateway.otp_backend.base_otp_backend import BaseOtpBackend
+from ldap_otp_gateway.otp_backend.dummy_static import OtpBackend as DummyStaticOtp
+from ldap_otp_gateway.gateway_filter.base_gateway_filter import BaseGatewayFilter
+from ldap_otp_gateway.otp_extractor.base_otp_extractor import BaseOTPExtractor
+from ldap_otp_gateway.otp_extractor.suffix import OtpExtractor as SuffixOtpExtractor
 
-from ldap_otp_proxy.otp_proxy import OTP_REQUEST_ATTR, GATEWAY_PASS_THROUGH_FORWARD_VALUE, GATEWAY_PASS_THROUGH_ATTR
+from ldap_otp_gateway.otp_gateway import OTP_REQUEST_ATTR, GATEWAY_PASS_THROUGH_FORWARD_VALUE, GATEWAY_PASS_THROUGH_ATTR
 
 
-class TestOtpProxy(unittest.TestCase):
+class TestOtpGateway(unittest.TestCase):
 
     def test_init_no_arg(self):
         with self.assertRaises(TypeError):
             # noinspection PyArgumentList
-            OtpProxy()
+            OtpGateway()
 
     def test_init_no_second_positional_arg(self):
         with self.assertRaises(TypeError):
             # noinspection PyArgumentList
-            OtpProxy(None)
+            OtpGateway(None)
 
     def test_init_no_otp_backend(self):
         with self.assertRaises(TypeError):
             # noinspection PyArgumentList
-            OtpProxy(otp_extractor=None)
+            OtpGateway(otp_extractor=None)
 
     def test_init_none_ldap_otp_backend_and_extractor(self):
         with self.assertRaises(AssertionError):
-            OtpProxy(None, None)
+            OtpGateway(None, None)
 
     def test_init_wrong_otp_backend_type(self):
         with self.assertRaises(AssertionError):
-            OtpProxy(object(), None)
+            OtpGateway(object(), None)
 
     def test_init_none_otp_extractor(self):
         with self.assertRaises(AssertionError):
-            OtpProxy(DummyStaticOtp(), None)
+            OtpGateway(DummyStaticOtp(), None)
 
     def test_handleBeforeForwardRequest_no_bind_request(self):
-        proxy = OtpProxy(DummyStaticOtp(), SuffixOtpExtractor())
+        proxy = OtpGateway(DummyStaticOtp(), SuffixOtpExtractor())
         request = object()
         controls = object()
         reply = MagicMock()
@@ -60,7 +60,7 @@ class TestOtpProxy(unittest.TestCase):
         otp = b'123456'
         extractor = SuffixOtpExtractor()
         extractor.extract = MagicMock(return_value=[password, otp])
-        proxy = OtpProxy(DummyStaticOtp(), extractor)
+        proxy = OtpGateway(DummyStaticOtp(), extractor)
         request = LDAPBindRequest()
         controls = object()
         reply = MagicMock()
@@ -73,20 +73,20 @@ class TestOtpProxy(unittest.TestCase):
         self.assertIsInstance(r, Deferred)
         self.assertEqual(r.result, (request, controls))
 
-    @patch('ldap_otp_proxy.otp.base_otp.BaseOtp')
-    @patch('ldap_otp_proxy.otp_extractor.base_otp_extractor.BaseOTPExtractor')
-    @patch('ldap_otp_proxy.gateway_filter.base_gateway_filter.BaseGatewayFilter')
+    @patch('ldap_otp_gateway.otp_backend.base_otp_backend.BaseOtpBackend')
+    @patch('ldap_otp_gateway.otp_extractor.base_otp_extractor.BaseOTPExtractor')
+    @patch('ldap_otp_gateway.gateway_filter.base_gateway_filter.BaseGatewayFilter')
     def test_handleBeforeForwardRequest_fail_extract(self, BaseOtpBackendMock, BaseOtpExtractorMock, BaseGatewayFilterMock):
         password = b'password'
         error_message = 'error message'
 
-        otp_backend = BaseOtp()
+        otp_backend = BaseOtpBackend()
         otp_extractor = BaseOTPExtractor()
         exception = Exception(error_message)
         otp_extractor.extract = MagicMock(side_effect=exception)
         gateway_filter = BaseGatewayFilter()
 
-        proxy = OtpProxy(otp_backend, otp_extractor, gateway_filter)
+        proxy = OtpGateway(otp_backend, otp_extractor, gateway_filter)
         request = LDAPBindRequest()
         request.auth = password
         controls = object()
@@ -111,16 +111,16 @@ class TestOtpProxy(unittest.TestCase):
         self.assertEqual(request.auth, password)
         self.assertEqual(hasattr(request, OTP_REQUEST_ATTR), False)
 
-    @patch('ldap_otp_proxy.otp.base_otp.BaseOtp')
-    @patch('ldap_otp_proxy.otp_extractor.base_otp_extractor.BaseOTPExtractor')
-    @patch('ldap_otp_proxy.gateway_filter.base_gateway_filter.BaseGatewayFilter')
+    @patch('ldap_otp_gateway.otp_backend.base_otp_backend.BaseOtpBackend')
+    @patch('ldap_otp_gateway.otp_extractor.base_otp_extractor.BaseOTPExtractor')
+    @patch('ldap_otp_gateway.gateway_filter.base_gateway_filter.BaseGatewayFilter')
     def test_handleBeforeForwardRequest_filter_ignore(self, BaseOtpBackendMock, BaseOtpExtractorMock, BaseGatewayFilterMock):
-        otp_backend = BaseOtp()
+        otp_backend = BaseOtpBackend()
         otp_extractor = BaseOTPExtractor()
         gateway_filter = BaseGatewayFilter()
         gateway_filter.ignore = MagicMock(return_value=True)
 
-        proxy = OtpProxy(otp_backend, otp_extractor, gateway_filter)
+        proxy = OtpGateway(otp_backend, otp_extractor, gateway_filter)
 
         password = b'password'
         request = LDAPBindRequest()

@@ -2,20 +2,20 @@
 > Easy MFA using OTP using existing standard LDAP architecture
 
 Your LDAP doesn't support One Time Password? No problem. 
-With the LDAP OTP proxy, integrate any OTP server with an existing LDPA setup.
+With the LDAP OTP gateway, integrate any OTP server with an existing LDPA setup.
 
 ![architecture.drawio.png](doc%2Farchitecture.drawio.png)
 
 The end user simply concatenate the password and OTP instead of using the password alone
 
 ## Quickstart
-Run the LDAP OTP proxy
+Run the LDAP OTP gateway
 ```shell
 pip install
 # Set the environment variable (see bellow) and run the service
-ldap-top-proxy
+ldap-otp-gateway
 # or
-python -m ldap_otp_proxy.run
+python -m ldap_otp_gateway.run
 ```
 And test
 ```shell
@@ -29,15 +29,15 @@ ldapwhoami -x -H ldaps://localhost:10636 -D "cn=admin,dc=example,dc=com" -w pass
 ```shell
 docker run \
   -p 10389:10389 -p 10636:10636 \
-  ghcr.io/widespot/ldap-otp-proxy
+  ghcr.io/widespot/ldap-otp-gateway
 ```
 Or using `docker compose`
 ```yaml
 services:
   ldap: ...
   otp: ...
-  ldap-otp-proxy:
-    image: ghcr.io/widespot/ldap-otp-proxy
+  ldap-otp-gateway:
+    image: ghcr.io/widespot/ldap-otp-gateway
     ports:
       - 10389:10389
       - 10636:10636
@@ -46,7 +46,7 @@ services:
       OTP_HOST: 'otp'
     volumes:
       # put the server.key.pem and server.crt.pem files here
-      - ./certs:/opt/ldap-otp-proxy/certs
+      - ./certs:/opt/ldap-otp-gateway/certs
 ```
 
 ## Full stack example
@@ -54,7 +54,7 @@ See the [example directory](./example)
 
 ## Configuration
 The configuration works with environment variables. 
-See [config.py](src/ldap_otp_proxy/config.py) file for actual implementation and more details in in-code comments.
+See [config.py](src/ldap_otp_gateway/config.py) file for actual implementation and more details in in-code comments.
 
 | variable      | default     | description                                               |
 |---------------|-------------|-----------------------------------------------------------|
@@ -63,7 +63,7 @@ See [config.py](src/ldap_otp_proxy/config.py) file for actual implementation and
 | LDAP_SSL_PORT | `636`       | port for the SSL endpoint of the LDAP backend             |
 
 The configuration of the OTP depends on the OTP backend
-* **RCdevs SOAP (`ldap_otp_proxy.otp.soap`)**
+* **RCdevs SOAP (`ldap_otp_gateway.otp.soap`)**
 
   RCDevs came up with an ugly implementation of OTP based on aging SOAP.
   The service is named WebAdm and is an ugly obfuscated "free" implementation bundled with
@@ -78,15 +78,15 @@ The configuration of the OTP depends on the OTP backend
   | OTP_ENDPOINT  | `openotp/`  |                                                           |
 
 ### SSL endpoints considerations
-The unsecure proxy endpoint will hit the insecure LDAP endpoint while the SSL access point 
-of the proxy will target the SSL side of the LDAP backed.
+The unsecure gateway endpoint will hit the insecure LDAP endpoint while the SSL access point 
+of the gateway will target the SSL side of the LDAP backed.
 
 ## Development and contributing
 ```shell
 python3 -m venv ./venv
 source venv/bin/activate
 poetry install
-ldap-top-proxy
+ldap-otp-gateway
 # or
-python -m ldap_otp_proxy.run
+python -m ldap_otp_gateway.run
 ```

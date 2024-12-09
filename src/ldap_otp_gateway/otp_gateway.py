@@ -7,7 +7,7 @@ from ldaptor.protocols.ldap.proxybase import ProxyBase
 from twisted.internet import defer
 
 from .gateway_filter.base_gateway_filter import BaseGatewayFilter
-from .otp.base_otp import BaseOtp
+from .otp_backend.base_otp_backend import BaseOtpBackend
 from .otp_extractor.base_otp_extractor import BaseOTPExtractor
 
 OTP_REQUEST_ATTR = "otp"
@@ -16,12 +16,12 @@ GATEWAY_PASS_THROUGH_FORWARD_VALUE = b"forward"
 GATEWAY_PASS_THROUGH_FILTER_VALUE = b"filter"
 
 
-class OtpProxy(ProxyBase):
+class OtpGateway(ProxyBase):
 
     def __init__(self, otp_backend, otp_extractor, gateway_filter=None):
         super().__init__()
 
-        assert otp_backend is not None and isinstance(otp_backend, BaseOtp)
+        assert otp_backend is not None and isinstance(otp_backend, BaseOtpBackend)
         assert otp_extractor is not None and isinstance(otp_extractor, BaseOTPExtractor)
         assert gateway_filter is None or isinstance(gateway_filter, BaseGatewayFilter)
 

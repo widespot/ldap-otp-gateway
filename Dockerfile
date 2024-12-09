@@ -33,9 +33,9 @@ ENV PATH="/root/.local/bin:$PATH"
 #ENV POETRY_EXPERIMENTAL_SYSTEM_GIT_CLIENT=true
 
 RUN poetry config virtualenvs.create false
-WORKDIR /opt/ldap-otp-proxy
+WORKDIR /opt/ldap-otp-gateway
 RUN mkdir certs
 COPY . .
 RUN poetry install
 
-ENTRYPOINT ["python", "-m", "ldap_otp_proxy.run"]
+ENTRYPOINT ["python", "-m", "ldap_otp_gateway.run"]
