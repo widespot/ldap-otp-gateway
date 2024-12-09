@@ -73,12 +73,20 @@ class TestOtpProxy(unittest.TestCase):
         self.assertIsInstance(r, Deferred)
         self.assertEqual(r.result, (request, controls))
 
-    def test_handleBeforeForwardRequest_fail_extract(self):
+    @patch('ldap_otp_proxy.otp.base_otp.BaseOtp')
+    @patch('ldap_otp_proxy.otp_extractor.base_otp_extractor.BaseOTPExtractor')
+    @patch('ldap_otp_proxy.gateway_filter.base_gateway_filter.BaseGatewayFilter')
+    def test_handleBeforeForwardRequest_fail_extract(self, BaseOtpBackendMock, BaseOtpExtractorMock, BaseGatewayFilterMock):
         password = b'password'
-        extractor = SuffixOtpExtractor()
-        exception = Exception()
-        extractor.extract = MagicMock(side_effect=exception)
-        proxy = OtpProxy(DummyStaticOtp(), extractor)
+        error_message = 'error message'
+
+        otp_backend = BaseOtp()
+        otp_extractor = BaseOTPExtractor()
+        exception = Exception(error_message)
+        otp_extractor.extract = MagicMock(side_effect=exception)
+        gateway_filter = BaseGatewayFilter()
+
+        proxy = OtpProxy(otp_backend, otp_extractor, gateway_filter)
         request = LDAPBindRequest()
         request.auth = password
         controls = object()
@@ -86,7 +94,7 @@ class TestOtpProxy(unittest.TestCase):
         r = proxy.handleBeforeForwardRequest(request, controls, reply)
 
         # Assert extractor called once
-        extractor.extract.assert_called_once_with(request)
+        otp_extractor.extract.assert_called_once_with(request)
         # Assert no OTP set
         self.assertEqual(hasattr(request, OTP_REQUEST_ATTR), False)
         # Assert no pass through set

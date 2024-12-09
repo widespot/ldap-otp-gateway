@@ -14,7 +14,7 @@ twisted = "^24.10.0"
 requests = "^2.32.3"
 
 [tool.poetry.scripts]
-ldap-otp-proxy = 'ldap_otp_proxy:run'
+ldap-otp-proxy = 'ldap_otp_proxy.run:run'
 
 [build-system]
 requires = ["poetry-core"]
