@@ -83,7 +83,7 @@ if generate_certificates:
 
 
 # OTP SETTINGS
-OTP_MODULE_NAME = os.getenv('OTP_MODULE_NAME', 'ldap_otp_proxy.otp.rcdevs_soap')
+OTP_MODULE_NAME = os.getenv('OTP_MODULE_NAME', 'ldap_otp_proxy.otp.dummy_static')
 OTP = getattr(importlib.import_module(OTP_MODULE_NAME), 'Otp')
 logging.info(f"OTP backend loaded: {OTP_MODULE_NAME}")
 # Experimental

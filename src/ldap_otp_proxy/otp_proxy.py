@@ -7,8 +7,15 @@ from ldaptor.protocols.ldap.proxybase import ProxyBase
 from twisted.internet import defer
 
 from . import config
+# TODO dynamic
+from .gateway_filter.ignore_static_user_list import GatewayFilter
+# TODO dynamic
+from .otp_extractor.suffix import OtpExtractor
 
 OTP_REQUEST_ATTR = "otp"
+GATEWAY_PASS_THROUGH_ATTR = "pass_through"
+GATEWAY_PASS_THROUGH_FORWARD_VALUE = b"forward"
+GATEWAY_PASS_THROUGH_FILTER_VALUE = b"filter"
 
 
 class OtpProxy(ProxyBase):
@@ -16,7 +23,11 @@ class OtpProxy(ProxyBase):
     def __init__(self):
         super().__init__()
 
+        # TODO init in config because OtpProxy is init at each request
+        # TODO have the otp as init parameter
         self.otp = config.OTP()
+        self.otp_extractor = OtpExtractor()
+        self.gateway_filter = GatewayFilter()
 
     def connectionLost(self, reason):
         super().connectionLost(reason)
@@ -30,22 +41,27 @@ class OtpProxy(ProxyBase):
 
         r = response
         if isinstance(request, ldaptor.protocols.pureldap.LDAPBindRequest):
-            if not isinstance(response, ldaptor.protocols.pureldap.LDAPBindResponse):
-                error = f"Unknown LDAP response type to initial LDAPBindRequest request: {response.__class__}"
+
+            pass_through = None
+            try:
+                pass_through = getattr(request, GATEWAY_PASS_THROUGH_ATTR)
+            except AttributeError:
+                error = ("Something really bad happened while trying to load the pass through behaviour after"
+                         "passing the request to the backend")
                 logging.error(error)
                 r = pureldap.LDAPBindResponse(
                     ldaperrors.LDAPUnknownError.resultCode,
                     errorMessage=error)
 
-            if response.resultCode == 0:
-                otp = getattr(request, OTP_REQUEST_ATTR, None)
-                if otp is None:
-                    error = f"Error getting OTP from request after forwarding it to the backend"
+            if pass_through == GATEWAY_PASS_THROUGH_FILTER_VALUE:
+                if not isinstance(response, ldaptor.protocols.pureldap.LDAPBindResponse):
+                    error = f"Unknown LDAP response type to initial LDAPBindRequest request: {response.__class__}"
                     logging.error(error)
                     r = pureldap.LDAPBindResponse(
                         ldaperrors.LDAPUnknownError.resultCode,
                         errorMessage=error)
-                else:
+
+                if response.resultCode == 0:
                     r = self.otp_bind(request, response)
 
         if r != response:
@@ -55,8 +71,16 @@ class OtpProxy(ProxyBase):
 
     def otp_bind(self, request: ldaptor.protocols.pureldap.LDAPBindRequest, response):
         user = request.dn.decode()
-        otp = (getattr(request, OTP_REQUEST_ATTR, request.auth[-6:])).decode()
-        password = (request.auth if hasattr(request, OTP_REQUEST_ATTR) else request.auth[:-6]).decode()
+        password = request.auth.decode()
+        try:
+            otp = getattr(request, OTP_REQUEST_ATTR).decode()
+        except AttributeError:
+            error = ("Something really bad happened. OTP couldn't be loaded back by the gateway"
+                     "from request after forwarding it to the backend")
+            logging.error(error)
+            return pureldap.LDAPBindResponse(ldaperrors.LDAPUnknownError.resultCode,
+                                             errorMessage=error)
+
         logging.debug(f"otp_bind user:{user}, password:{password}, otp={otp}")
 
         try:
@@ -85,18 +109,20 @@ class OtpProxy(ProxyBase):
         client via `reply(response)`.
         """
         if isinstance(request, ldaptor.protocols.pureldap.LDAPBindRequest):
-            if len(request.auth) < 6:
-                reply(pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode,
-                                                errorMessage="Missing OTP credentials"))
+            if self.gateway_filter.ignore(request):
+                setattr(request, GATEWAY_PASS_THROUGH_ATTR, GATEWAY_PASS_THROUGH_FORWARD_VALUE)
+            else:
+                setattr(request, GATEWAY_PASS_THROUGH_ATTR, GATEWAY_PASS_THROUGH_FILTER_VALUE)
 
-                return None
-
-            if config.OTP_BIND:
-                reply(self.otp_bind(request, None))
-                return None
-
-            # remove & backup OTP from request auth before it is passed to proxied LDAP
-            setattr(request, OTP_REQUEST_ATTR, request.auth[-6:])
-            request.auth = request.auth[:-6]
+                try:
+                    # remove & backup OTP from request auth before it is passed to proxied LDAP
+                    [password, otp] = self.otp_extractor.extract(request)
+                    setattr(request, OTP_REQUEST_ATTR, otp)
+                    request.auth = password
+                except Exception as e:
+                    logging.error(e)
+                    reply(pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode,
+                                                    errorMessage=str(e)))
+                    return None
 
         return defer.succeed((request, controls))
