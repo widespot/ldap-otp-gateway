@@ -18,8 +18,6 @@ try:
 except ValueError:
     raise ValueError(f'LDAP_PROXY_SSL_PORT must be an integer value. found {os.getenv("LDAP_PROXY_SSL_PORT")} instead')
 
-#LDAP_PROXY_SSL_KEY_PATH = '/Users/raphaeljoie/Workspace/github.com/widespot/ldap-otp-proxy/example/certs/server.key.pem'
-#LDAP_PROXY_SSL_CERT_PATH = '/Users/raphaeljoie/Workspace/github.com/widespot/ldap-otp-proxy/example/certs/server.crt.pem'
 LDAP_PROXY_SSL_KEY_PATH = os.getenv('LDAP_PROXY_SSL_KEY_PATH', './certs/server.key.pem')
 LDAP_PROXY_SSL_CERT_PATH = os.getenv('LDAP_PROXY_SSL_CERT_PATH', './certs/server.crt.pem')
 

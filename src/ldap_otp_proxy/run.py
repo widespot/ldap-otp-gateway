@@ -10,6 +10,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 from . import config
+from .gateway_filter.ignore_static_user_list import GatewayFilter
+from .otp_extractor.suffix import OtpExtractor
 from .otp_proxy import OtpProxy
 
 OTP_REQUEST_ATTR = "otp"
@@ -30,7 +32,7 @@ pureldap.LDAPBindRequest.__repr__ = ldapBindRequestRepr
 
 
 def run():
-    logging.info("Starting LDAP OTP proxy")
+    logging.info("Starting LDAP OTP proxy ...")
 
     backend_connection_string = f'tcp:{config.LDAP_HOST}:{config.LDAP_PORT}'
     logging.info(f"- using unsecure backend: {backend_connection_string}")
@@ -48,14 +50,18 @@ def run():
         backend_connection_string_ssl,
         LDAPClient)
 
+    otp_backend = config.OTP()
+    otp_extractor = OtpExtractor()
+    gateway_filter = GatewayFilter()
+
     def build_protocol():
-        proto = OtpProxy()
+        proto = OtpProxy(otp_backend, otp_extractor=otp_extractor, gateway_filter=gateway_filter)
         proto.clientConnector = backend_connector
         proto.use_tls = False
         return proto
 
     def build_protocol_ssl():
-        proto = OtpProxy()
+        proto = OtpProxy(otp_backend, otp_extractor=otp_extractor, gateway_filter=gateway_filter)
         proto.clientConnector = backend_connector_ssl
         proto.use_tls = False
         return proto
