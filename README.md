@@ -26,12 +26,18 @@ ldapwhoami -x -H ldaps://localhost:10636 -D "cn=admin,dc=example,dc=com" -w pass
 ```
 
 ### Using Docker
+```shell
+docker run \
+  -p 10389:10389 -p 10636:10636 \
+  ghcr.io/widespot/ldap-otp-proxy
+```
+Or using `docker compose`
 ```yaml
 services:
   ldap: ...
   otp: ...
   ldap-otp-proxy:
-    image: ghcr.io/widespot/ldap-otp-proxy:v0.1.0
+    image: ghcr.io/widespot/ldap-otp-proxy
     ports:
       - 10389:10389
       - 10636:10636
@@ -46,20 +52,36 @@ services:
 ## Full stack example
 See the [example directory](./example)
 
-## Environment configuration
-See [config.py](src/ldap_otp_proxy/config.py) file for more details
+## Configuration
+The configuration works with environment variables. 
+See [config.py](src/ldap_otp_proxy/config.py) file for actual implementation and more details in in-code comments.
 
 | variable      | default     | description                                               |
 |---------------|-------------|-----------------------------------------------------------|
 | LDAP_HOST     | `localhost` | host of the backend LDAP server                           |
 | LDAP_PORT     | `389`       | port for the unsecure endpoint of the LDAP backend        |
 | LDAP_SSL_PORT | `636`       | port for the SSL endpoint of the LDAP backend             |
-| OTP_PROTOCOL  | `http`      | protocol for the OTP backend. `http` and `https` accepted |
-| OTP_HOST      | `localhost` | host of the backend OTP service                           |
-| OTP_PORT      | `8080`      |                                                           |
-| OTP_ENDPOINT  | `openotp/`  |                                                           |
 
-## Dev
+The configuration of the OTP depends on the OTP backend
+* **RCdevs SOAP (`ldap_otp_proxy.otp.soap`)**
+
+  RCDevs came up with an ugly implementation of OTP based on aging SOAP.
+  The service is named WebAdm and is an ugly obfuscated "free" implementation bundled with
+  a lot of fancy but useless stuffs. If you too are stuck with that product, sorry for you.
+  We at least do our best to ease your life.
+
+  | variable      | default     | description                                               |
+  |---------------|-------------|-----------------------------------------------------------|
+  | OTP_PROTOCOL  | `http`      | protocol for the OTP backend. `http` and `https` accepted |
+  | OTP_HOST      | `localhost` | host of the backend OTP service                           |
+  | OTP_PORT      | `8080`      |                                                           |
+  | OTP_ENDPOINT  | `openotp/`  |                                                           |
+
+### SSL endpoints considerations
+The unsecure proxy endpoint will hit the insecure LDAP endpoint while the SSL access point 
+of the proxy will target the SSL side of the LDAP backed.
+
+## Development and contributing
 ```shell
 python3 -m venv ./venv
 source venv/bin/activate

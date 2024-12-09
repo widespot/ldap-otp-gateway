@@ -15,8 +15,21 @@
 python -m ldap-otp-proxy.run
 ```
 
+## Troubleshoot
+```shell
+# test backend LDAP basic who am I
 ldapwhoami -x -H ldap://localhost:389 -D "cn=admin,dc=example,dc=com" -w password
+# test backend LDAP request
+ldapsearch -H ldap://localhost:389 -D "cn=admin,dc=example,dc=com" -w password -v -b "dc=WebADM"
+# test backend LDAP basic who am I with SSL, but disable SSL check
 LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://localhost:636 -D "cn=admin,dc=example,dc=com" -w password
+# test backend LDAP basic who am I with SSL
+ldapwhoami -x -H ldaps://localhost:636 -D "cn=admin,dc=example,dc=com" -w password
 
-ldapwhoami -x -H ldap://localhost:10389 -D "cn=admin,dc=example,dc=com" -w password123456 -d 255
-LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://localhost:10636 -D "cn=admin,dc=example,dc=com" -w password123456 -d 255
+# test LDAP gateway who am I
+ldapwhoami -x -H ldap://localhost:10389 -D "cn=admin,dc=example,dc=com" -w password123456
+# test LDAP gateway request
+ldapsearch -H ldap://localhost:10389 -D "cn=admin,dc=example,dc=com" -w password123456 -v -b "dc=WebADM"
+# test LDAP gateway basic who am I with SSL, but disable SSL check
+LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://localhost:10636 -D "cn=admin,dc=example,dc=com" -w password123456
+```

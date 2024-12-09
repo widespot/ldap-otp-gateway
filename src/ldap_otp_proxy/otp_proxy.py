@@ -4,7 +4,6 @@ import ldaptor.protocols.pureldap
 from ldaptor.protocols import pureldap
 from ldaptor.protocols.ldap import ldaperrors
 from ldaptor.protocols.ldap.proxybase import ProxyBase
-import requests
 from twisted.internet import defer
 
 from . import config
@@ -13,6 +12,11 @@ OTP_REQUEST_ATTR = "otp"
 
 
 class OtpProxy(ProxyBase):
+
+    def __init__(self):
+        super().__init__()
+        from .otp.soap_rcdevs import Otp
+        self.otp = Otp()
 
     def connectionLost(self, reason):
         super().connectionLost(reason)
@@ -55,39 +59,22 @@ class OtpProxy(ProxyBase):
         password = (request.auth if hasattr(request, OTP_REQUEST_ATTR) else request.auth[:-6]).decode()
         logging.debug(f"otp_bind user:{user}, password:{password}, otp={otp}")
 
-        uri = f"{config.OTP_PROTOCOL}://{config.OTP_HOST}:{config.OTP_PORT}/{config.OTP_ENDPOINT}"
-        logging.debug(f"uri={uri}")
-        data = (
-            "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/1999/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/1999/XMLSchema\" SOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-            "<SOAP-ENV:Header/>"
-            "<SOAP-ENV:Body>"
-            "<m:openotpSimpleLogin xmlns:m=\"urn:openotp\">"
-            f"<m:username xsi:type=\"xsd:string\">{user}</m:username>"
-            "<m:domain xsi:type=\"xsd:string\"/>"
-            f"<m:anyPassword xsi:type=\"xsd:string\">{password}{otp}</m:anyPassword>"
-            "<m:client xsi:type=\"xsd:string\">ldapsearch</m:client>"
-            "<m:source xsi:type=\"xsd:string\"/>"
-            "<m:settings xsi:type=\"xsd:string\">ChallengeMode=No</m:settings>"
-            "<m:options xsi:type=\"xsd:string\">NOVOICE,-U2F,LDAPDN</m:options>"
-            "<m:context xsi:type=\"xsd:string\"/><m:retryId xsi:type=\"xsd:string\"/>"
-            "</m:openotpSimpleLogin>"
-            "</SOAP-ENV:Body>"
-            "</SOAP-ENV:Envelope>")
-        logging.debug(f"data={data}")
-        r = requests.post(
-            uri,
-            headers={"Content-Type": "text/xml"},
-            data=data)
-
         try:
-            logging.debug(r.raw)
-            r.raise_for_status()
-            if response is not None:
-                return response
-            return pureldap.LDAPBindResponse(ldaperrors.Success.resultCode)
+            if self.otp.verify(user, password, otp):
+                if response is not None:
+                    logging.info("Successful OTP verification, forwarding backend response")
+                    return response
+
+                logging.info("Successful OTP verification but no backend response to forward. "
+                             "Generating an empty success response instead")
+                return pureldap.LDAPBindResponse(ldaperrors.Success.resultCode)
+            else:
+                logging.info("Failed OTP verification.")
+                return pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode)
         except Exception as e:
+            logging.info("Error while performing OTP verification.")
             logging.error(e)
-            pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode)
+            return pureldap.LDAPBindResponse(ldaperrors.LDAPUnknownError.resultCode, errorMessage="")
 
     def handleBeforeForwardRequest(self, request, controls, reply):
         """
