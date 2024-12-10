@@ -78,7 +78,7 @@ class OtpGateway(ProxyBase):
             return pureldap.LDAPBindResponse(ldaperrors.LDAPUnknownError.resultCode,
                                              errorMessage=error)
 
-        logging.debug(f"otp_bind user:{user}, password:{password}, otp={otp}")
+        logging.debug(f"otp_bind user:{user}")
 
         try:
             if self.otp_backend.verify(user, password, otp):

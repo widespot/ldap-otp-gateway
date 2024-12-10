@@ -4,14 +4,11 @@ import os
 from .base_otp_backend import BaseOtpBackend
 
 
-OTP_STATIC_CODE = os.environ.get('OTP_STATIC_CODE', '123456')
-
-
 class OtpBackend(BaseOtpBackend):
 
-    def __init__(self):
-        self.dummy_static = OTP_STATIC_CODE
-        logging.debug(f"dummy_static={self.dummy_static}")
+    def __init__(self, dummy_static=None):
+        self.dummy_static = dummy_static if dummy_static is not None else os.environ.get('OTP_STATIC_CODE', '123456')
+        logging.info(f"dummy_static={self.dummy_static}")
 
     def verify(self, username, password, otp) -> bool:
         return otp == self.dummy_static

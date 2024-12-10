@@ -1,8 +1,18 @@
-1. Start the service stack
-    ```shell
-    docker compose up -d
-    docker compose logs -f webadm
-    ```
+# Full stack example
+
+## Using custom OTP
+```shell
+docker compose up -d
+python -m ldap_otp_gateway.run
+```
+
+## Using WebADM OTP
+
+```shell
+docker compose up -d
+docker compose logs -f webadm
+```
+
 2. Follow the annoying process to get a license, and put the `license.key` file in the [./webadm](./webadm) folder.
 3. Install the license file and fix the auto-generated `server.xml` file
    ```shell

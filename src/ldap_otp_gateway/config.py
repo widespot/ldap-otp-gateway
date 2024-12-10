@@ -82,7 +82,18 @@ if generate_certificates:
 
 # OTP SETTINGS
 OTP_BACKEND_MODULE_NAME = os.getenv('OTP_BACKEND_MODULE_NAME', 'ldap_otp_gateway.otp_backend.dummy_static')
-OTP_BACKEND = getattr(importlib.import_module(OTP_BACKEND_MODULE_NAME), 'OtpBackend')
-logging.info(f"OTP backend loaded: {OTP_BACKEND_MODULE_NAME}")
+logging.info(f"Loading OTP Backend: {OTP_BACKEND_MODULE_NAME}")
+OTP_BACKEND = getattr(importlib.import_module(OTP_BACKEND_MODULE_NAME), 'OtpBackend')()
+
+OTP_EXTRACTOR_MODULE_NAME = os.getenv('OTP_EXTRACTOR_MODULE_NAME', 'ldap_otp_gateway.otp_extractor.suffix')
+logging.info(f"Loading OTP Extractor: {OTP_EXTRACTOR_MODULE_NAME}")
+OTP_EXTRACTOR = getattr(importlib.import_module(OTP_EXTRACTOR_MODULE_NAME), 'OtpExtractor')()
+
 # Experimental
 OTP_BIND = False
+
+
+# GATEWAY SETTINGS
+GATEWAY_FILTER_MODULE_NAME = os.getenv('GATEWAY_FILTER_MODULE_NAME', None)
+GATEWAY_FILTER = None if GATEWAY_FILTER_MODULE_NAME is None else (
+    getattr(importlib.import_module(GATEWAY_FILTER_MODULE_NAME), 'GatewayFilter')())

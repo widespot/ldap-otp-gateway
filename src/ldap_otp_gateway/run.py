@@ -1,4 +1,6 @@
+import argparse
 import logging
+import os
 from functools import partial
 
 from ldaptor.protocols import pureldap
@@ -6,15 +8,13 @@ from ldaptor.protocols.ldap.ldapclient import LDAPClient
 from ldaptor.protocols.ldap.ldapconnector import connectToLDAPEndpoint
 from twisted.internet import protocol, reactor, ssl
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-from . import config
 from .gateway_filter.ignore_static_user_list import GatewayFilter
 from .otp_extractor.suffix import OtpExtractor
 from .otp_gateway import OtpGateway
 
-OTP_REQUEST_ATTR = "otp"
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logging.basicConfig()
 
 
 def ldapBindRequestRepr(self):
@@ -32,7 +32,28 @@ pureldap.LDAPBindRequest.__repr__ = ldapBindRequestRepr
 
 
 def run():
-    logging.info("Starting LDAP OTP gateway ...")
+    parser = argparse.ArgumentParser(description='Run the LDAP OTP gateway.')
+    parser.add_argument('--load-dotenv', action='store_true',
+                        help='use python-dotenv to load environment variables. ')
+
+    args = parser.parse_args()
+    if args.load_dotenv:
+        try:
+            # noinspection PyUnresolvedReferences
+            import dotenv
+        except ModuleNotFoundError:
+            raise Exception("python-dotenv package not found. It's not part of the package dependency and you need "
+                            "to install it manually before using --load-dotenv argument.")
+
+        dotenv_path = os.path.join(os.getcwd(), '.env')
+        logger.info(f"Loading environment from {dotenv_path} ...")
+        dotenv.load_dotenv(dotenv_path)
+
+    logger.info("Start run configuration")
+
+    from . import config
+
+    logger.info("Now starting LDAP OTP gateway ...")
 
     backend_connection_string = f'tcp:{config.LDAP_HOST}:{config.LDAP_PORT}'
     logging.info(f"- using unsecure backend: {backend_connection_string}")
@@ -50,18 +71,14 @@ def run():
         backend_connection_string_ssl,
         LDAPClient)
 
-    otp_backend = config.OTP_BACKEND()
-    otp_extractor = OtpExtractor()
-    gateway_filter = GatewayFilter()
-
     def build_protocol():
-        proto = OtpGateway(otp_backend, otp_extractor=otp_extractor, gateway_filter=gateway_filter)
+        proto = OtpGateway(config.OTP_BACKEND, otp_extractor=config.OTP_EXTRACTOR, gateway_filter=config.GATEWAY_FILTER)
         proto.clientConnector = backend_connector
         proto.use_tls = False
         return proto
 
     def build_protocol_ssl():
-        proto = OtpGateway(otp_backend, otp_extractor=otp_extractor, gateway_filter=gateway_filter)
+        proto = OtpGateway(config.OTP_BACKEND, otp_extractor=config.OTP_EXTRACTOR, gateway_filter=config.GATEWAY_FILTER)
         proto.clientConnector = backend_connector_ssl
         proto.use_tls = False
         return proto

@@ -36,6 +36,6 @@ RUN poetry config virtualenvs.create false
 WORKDIR /opt/ldap-otp-gateway
 RUN mkdir certs
 COPY . .
-RUN poetry install
+RUN poetry install --with peer
 
 ENTRYPOINT ["python", "-m", "ldap_otp_gateway.run"]

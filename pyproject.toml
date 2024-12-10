@@ -16,6 +16,12 @@ requests = "^2.32.3"
 [tool.poetry.scripts]
 ldap-otp-gateway = 'ldap_otp_gateway.run:run'
 
+[tool.poetry.group.peer]
+optional = true
+
+[tool.poetry.group.peer.dependencies]
+python-dotenv = "^1.0.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
