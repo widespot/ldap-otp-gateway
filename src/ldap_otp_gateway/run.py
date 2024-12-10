@@ -8,9 +8,7 @@ from ldaptor.protocols.ldap.ldapclient import LDAPClient
 from ldaptor.protocols.ldap.ldapconnector import connectToLDAPEndpoint
 from twisted.internet import protocol, reactor, ssl
 
-from .gateway_filter.ignore_static_user_list import GatewayFilter
-from .otp_extractor.suffix import OtpExtractor
-from .otp_gateway import OtpGateway
+from ldap_otp_gateway import OtpGateway
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -51,7 +49,7 @@ def run():
 
     logger.info("Start run configuration")
 
-    from . import config
+    from ldap_otp_gateway import config
 
     logger.info("Now starting LDAP OTP gateway ...")
 

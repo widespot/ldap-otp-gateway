@@ -9,12 +9,15 @@ With the LDAP OTP gateway, integrate any OTP server with an existing LDPA setup.
 The end user simply concatenate the password and OTP instead of using the password alone
 
 ## Quickstart
-Run the LDAP OTP gateway
+Run the LDAP OTP gateway (see [CLI arguments](#CLI-arguments) + [Run configuration](#run-configuration) for more)
 ```shell
+# 1. Install package
 pip install
-# Set the environment variable (see bellow) and run the service
+# 2. Optionally configure using the environment variable
+#export LDAP_HOST=custom-host
+# 3. run the service using executable
 ldap-otp-gateway
-# or
+# 3 bis. or the python modue
 python -m ldap_otp_gateway.run
 ```
 And test
@@ -46,11 +49,25 @@ services:
       OTP_HOST: 'otp'
     volumes:
       # put the server.key.pem and server.crt.pem files here
+      # See Run configuration and SSL considerations sections
       - ./certs:/opt/ldap-otp-gateway/certs
 ```
 
 ## Full stack example
 See the [example directory](./example)
+
+## CLI arguments
+both the builtin `ldap-otp-gateway` CLI executable, and the
+manual `python -m ldap_otp_gateway.run` module executions accepts the following parameters
+```
+usage: ldap-otp-gateway [-h] [--load-dotenv]
+
+Run the LDAP OTP gateway.
+
+options:
+  -h, --help     show this help message and exit
+  --load-dotenv  use python-dotenv to load environment variables.
+```
 
 ## Run configuration
 The run configuration works with environment variables. 
@@ -67,6 +84,7 @@ See [config.py](src/ldap_otp_gateway/config.py) file for actual implementation a
 | LDAP_GATEWAY_SSL_CERT_PATH | `./certs/server.crt.pem`    | absolute or relative (to cwd) path to the gateway SSL certificate. Self signed certificate generated if none SSL file provided. See [SSL endpoints considerations section](#ssl-endpoints-considerations)      |                                                                                                                                            
 | OTP_BACKEND_MODULE_NAME    | `.otp_backend.dummy_static` | relative or absolute Python module containing an `OtpBackend` class that extends `BaseOtpBackend` and implements the OTP Backend behaviour. see [OTP Backends configuration section](#OTP-Backends)            |
 | OTP_EXTRACTOR_MODULE_NAME  | `.otp_extractor.suffix`     | relative or absolute Python module containing an `OtpExtractor` class that extends `BaseOtpExtractor` and implements the OTP extracting mechanism. see [OTP Extractors configuration section](#OTP-Extractors) |
+| GATEWAY_FILTER_MODULE_NAME | `None`                      | relative or absolute Python module containing a `GatewayFilter` class that extends `BaseGatewayFilter` and implements the pass through selection. see [Pass through section](#gateway-passthrough)             |
 
 ### OTP Backends
 Two OTP backends are provided, but any custom behaviour can be added. It must be provided
@@ -108,6 +126,23 @@ Built in extractor:
 
   Expects the OTP concatenated directly after the password, as suffix. ([see source](src/ldap_otp_gateway/otp_extractor/suffix.py))
 
+### Gateway Passthrough
+This LDAP gateway can either forward or filter the LDAP requests it receives.
+It can be useful to directly pass to the backend requests made by users that are not using OTP.
+
+One gateway filter is provided, but any custom behaviour can be added. It must be provided
+as a `GatewayFilter` class, extending
+[`BaseGatewayFilter`](src/ldap_otp_gateway/gateway_filter/base_gateway_filter.py).
+There is one function to implement, that is taking an
+LDAP request as input, and must return a boolean, whether it is to be forwarded as is or fitered
+for OTP.
+
+Built in gateway filter *(default behaviour is None)*:
+* **Static user list (`ldap_otp_gateway.gateway_filter.ignore_static_user_list`)**
+
+  Directly forwards LDAP requests to backend for a static list of user DN. ([see source](src/ldap_otp_gateway/gateway_filter/ignore_static_user_list.py))
+
+
 ### SSL endpoints considerations
 The unsecure gateway endpoint will hit the insecure LDAP endpoint while the SSL access point 
 of the gateway will target the SSL side of the LDAP backed.
@@ -116,8 +151,9 @@ of the gateway will target the SSL side of the LDAP backed.
 ```shell
 python3 -m venv ./venv
 source venv/bin/activate
-poetry install
+poetry install --with peer
 ldap-otp-gateway
 # or
 python -m ldap_otp_gateway.run
+# or use the debug mode of IDE to execute src/ldap_otp_gateway/run.py
 ```
