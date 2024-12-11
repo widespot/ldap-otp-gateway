@@ -84,7 +84,7 @@ See [config.py](src/ldap_otp_gateway/config.py) file for actual implementation a
 | LDAP_GATEWAY_SSL_CERT_PATH | `./certs/server.crt.pem`    | absolute or relative (to cwd) path to the gateway SSL certificate. Self signed certificate generated if none SSL file provided. See [SSL endpoints considerations section](#ssl-endpoints-considerations)      |                                                                                                                                            
 | OTP_BACKEND_MODULE_NAME    | `.otp_backend.dummy_static` | relative or absolute Python module containing an `OtpBackend` class that extends `BaseOtpBackend` and implements the OTP Backend behaviour. see [OTP Backends configuration section](#OTP-Backends)            |
 | OTP_EXTRACTOR_MODULE_NAME  | `.otp_extractor.suffix`     | relative or absolute Python module containing an `OtpExtractor` class that extends `BaseOtpExtractor` and implements the OTP extracting mechanism. see [OTP Extractors configuration section](#OTP-Extractors) |
-| GATEWAY_FILTER_MODULE_NAME | `None`                      | relative or absolute Python module containing a `GatewayFilter` class that extends `BaseGatewayFilter` and implements the pass through selection. see [Pass through section](#gateway-passthrough)             |
+| GATEWAY_FILTER_MODULE_NAME | `None`                      | relative or absolute Python module containing a `GatewayFilter` class that extends `BaseGatewayFilter` and implements the pass through selection. see [Pass through section](#gateway-pass-through-behaviour)  |
 
 ### OTP Backends
 Two OTP backends are provided, but any custom behaviour can be added. It must be provided
@@ -126,7 +126,7 @@ Built in extractor:
 
   Expects the OTP concatenated directly after the password, as suffix. ([see source](src/ldap_otp_gateway/otp_extractor/suffix.py))
 
-### Gateway Passthrough
+### Gateway pass through behaviour
 This LDAP gateway can either forward or filter the LDAP requests it receives.
 It can be useful to directly pass to the backend requests made by users that are not using OTP.
 
@@ -140,7 +140,8 @@ for OTP.
 Built in gateway filter *(default behaviour is None)*:
 * **Static user list (`ldap_otp_gateway.gateway_filter.ignore_static_user_list`)**
 
-  Directly forwards LDAP requests to backend for a static list of user DN. ([see source](src/ldap_otp_gateway/gateway_filter/ignore_static_user_list.py))
+  Directly forwards LDAP requests to backend for a static list of user DN.
+  The search in the list is case-insensitive ([see source](src/ldap_otp_gateway/gateway_filter/ignore_static_user_list.py))
 
 
 ### SSL endpoints considerations
