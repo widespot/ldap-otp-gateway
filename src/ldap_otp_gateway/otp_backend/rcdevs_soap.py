@@ -31,6 +31,51 @@ def normalize(xml_str) -> str:
     return xml.toxml()
 
 
+def is_success(xml_str):
+    xml = minidom.parseString(xml_str)
+    if len(xml.childNodes) != 1:
+        logging.warning('Unexpected root size: ' + str(len(xml.childNodes)))
+        return False
+
+    if xml.childNodes[0].nodeName != 'SOAP-ENV:Envelope':
+        logging.warning('Unexpected first level child node name: ' + str(xml.childNodes[0].nodeName))
+        return False
+
+    envelope = xml.childNodes[0]
+
+    if len(envelope.childNodes) != 1:
+        logging.warning('Unexpected envelope size: ' + str(len(envelope.childNodes)))
+        return False
+
+    if envelope.childNodes[0].nodeName != 'SOAP-ENV:Body':
+        logging.warning('Unexpected envelope first child node name: ' + str(envelope.childNodes[0].nodeName))
+        return False
+
+    body = envelope.childNodes[0]
+
+    if len(body.childNodes) != 1:
+        logging.warning('Unexpected body size: ' + str(len(body.childNodes)))
+        return False
+
+    if body.childNodes[0].nodeName != 'ns1:openotpSimpleLoginResponse':
+        return False
+
+    response = body.childNodes[0]
+    if len(response.childNodes) != 5:
+        return False
+
+    code = response.childNodes[0]
+
+    if len(code.childNodes) != 1:
+        return False
+    if code.childNodes[0].nodeType != code.childNodes[0].TEXT_NODE:
+        return False
+    if code.childNodes[0].data != '1':
+        return False
+
+    return True
+
+
 SUCCESS_RESPONSE_TXT = """<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:openotp">
 <SOAP-ENV:Body>
@@ -94,14 +139,8 @@ class OtpBackend(BaseOtpBackend):
             data=data)
 
         response_txt = r.text
-        logging.debug(f"Response: {response_txt}")
+        logging.debug(f"RCDevs OTP Backend verify() Response: {response_txt}")
 
         r.raise_for_status()
 
-        # Parse XML response
-        response_norm_text = normalize(response_txt)
-        if response_norm_text == SUCCESS_RESPONSE_NORM_TXT:
-            return True
-        else:
-            logging.debug(f"Expected {SUCCESS_RESPONSE_NORM_TXT} but got {response_norm_text}")
-            return False
+        return is_success(response_txt)
