@@ -153,6 +153,7 @@ of the gateway will target the SSL side of the LDAP backed.
 python3 -m venv ./venv
 source venv/bin/activate
 poetry install --with peer
+python -m unittest discover -s tests/unit
 ldap-otp-gateway
 # or
 python -m ldap_otp_gateway.run

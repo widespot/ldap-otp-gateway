@@ -10,5 +10,5 @@ class OtpBackend(BaseOtpBackend):
         self.dummy_static = dummy_static if dummy_static is not None else os.environ.get('OTP_STATIC_CODE', '123456')
         logging.info(f"dummy_static={self.dummy_static}")
 
-    def verify(self, username, password, otp) -> bool:
-        return otp == self.dummy_static
+    def verify(self, username, password, otp) -> (bool, (str or None)):
+        return otp == self.dummy_static, None

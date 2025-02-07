@@ -31,65 +31,46 @@ def normalize(xml_str) -> str:
     return xml.toxml()
 
 
-def is_success(xml_str):
-    xml = minidom.parseString(xml_str)
+def check_response(xml_str):
+    xml = minidom.parseString(normalize(xml_str))
     if len(xml.childNodes) != 1:
-        logging.warning('Unexpected root size: ' + str(len(xml.childNodes)))
-        return False
+        raise Exception(f'Expected root size to be 1 but got {len(xml.childNodes)} instead. XML was "{xml.toxml()}"')
 
-    if xml.childNodes[0].nodeName != 'SOAP-ENV:Envelope':
-        logging.warning('Unexpected first level child node name: ' + str(xml.childNodes[0].nodeName))
-        return False
+    envelope_name = 'SOAP-ENV:Envelope'
+    if xml.childNodes[0].nodeName != envelope_name:
+        raise Exception(f'Expected root child node name to be "{envelope_name}" but got "{xml.childNodes[0].nodeName}" instead. XML was "{xml.toxml()}"')
 
     envelope = xml.childNodes[0]
 
     if len(envelope.childNodes) != 1:
-        logging.warning('Unexpected envelope size: ' + str(len(envelope.childNodes)))
-        return False
+        raise Exception(f'Expected envelope size to be 1 but got {len(envelope.childNodes)} instead. Envelope was "{envelope.toxml()}"')
 
-    if envelope.childNodes[0].nodeName != 'SOAP-ENV:Body':
-        logging.warning('Unexpected envelope first child node name: ' + str(envelope.childNodes[0].nodeName))
-        return False
+    body_name = 'SOAP-ENV:Body'
+    if envelope.childNodes[0].nodeName != body_name:
+        raise Exception(f'Expected envelope child node name to be "{body_name}" but got "{envelope.childNodes[0].nodeName}" instead. Envelope was "{envelope.toxml()}"')
 
     body = envelope.childNodes[0]
 
     if len(body.childNodes) != 1:
-        logging.warning('Unexpected body size: ' + str(len(body.childNodes)))
-        return False
+        raise Exception(f'Expected body size to be 1 but got {len(body.childNodes)} instead. Body was "{body.toxml()}"')
 
-    if body.childNodes[0].nodeName != 'ns1:openotpSimpleLoginResponse':
-        return False
+    response_name = 'ns1:openotpSimpleLoginResponse'
+    if body.childNodes[0].nodeName != response_name:
+        raise Exception(f'Expected body child node name to be "{response_name}" but got "{body.childNodes[0].nodeName}" instead. Body was "{body.toxml()}"')
 
     response = body.childNodes[0]
     if len(response.childNodes) != 5:
-        return False
+        raise Exception(f'Expected response size to be 5 but got {len(body.childNodes)} instead. Response was "{response.toxml()}')
 
     code = response.childNodes[0]
-
     if len(code.childNodes) != 1:
-        return False
+        raise Exception(f'Expected response code size to be 1. Response was "{response.toxml()}')
     if code.childNodes[0].nodeType != code.childNodes[0].TEXT_NODE:
-        return False
+        raise Exception(f'Expected response code type to be textual. Response was "{response.toxml()}')
     if code.childNodes[0].data != '1':
-        return False
+        raise Exception(f'Expected response code to be "1" but got {code.childNodes[0].data} instead. Response was "{response.toxml()}')
 
-    return True
-
-
-SUCCESS_RESPONSE_TXT = """<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:openotp">
-<SOAP-ENV:Body>
-<ns1:openotpSimpleLoginResponse>
-<code>1</code>
-<error/>
-<message>Authentication success</message>
-<data/>
-<concat>8</concat>
-</ns1:openotpSimpleLoginResponse>
-</SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-"""
-SUCCESS_RESPONSE_NORM_TXT = normalize(SUCCESS_RESPONSE_TXT)
+    return True, None
 
 
 class OtpBackend(BaseOtpBackend):
@@ -111,10 +92,9 @@ class OtpBackend(BaseOtpBackend):
     """
     def __init__(self):
         self.uri = f"{OTP_PROTOCOL}://{OTP_HOST}:{OTP_PORT}/{OTP_ENDPOINT}"
-        logging.debug(f"uri={self.uri}")
+        logging.debug(f"OtpBackend() uri={self.uri}")
 
-    def verify(self, username, password, otp) -> bool:
-        logging.debug(f"uri={self.uri}")
+    def verify(self, username, password, otp) -> (bool, (str or None)):
         data = (
             "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/1999/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/1999/XMLSchema\" SOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
             "<SOAP-ENV:Header/>"
@@ -131,7 +111,11 @@ class OtpBackend(BaseOtpBackend):
             "</m:openotpSimpleLogin>"
             "</SOAP-ENV:Body>"
             "</SOAP-ENV:Envelope>")
-        logging.debug(f"data={data}")
+
+        logging.error(f"RCDevs OTP Backend verify() Request data={data}".replace(
+            "{password}{otp}",
+            f"{'*'*len(password)}{'*'*len(otp)}"
+        ))
 
         r = requests.post(
             self.uri,
@@ -143,4 +127,9 @@ class OtpBackend(BaseOtpBackend):
 
         r.raise_for_status()
 
-        return is_success(response_txt)
+        try:
+            check_response(response_txt)
+        except Exception as e:
+            return False, f'RCDevs OTP Backend replied: {e}'
+
+        return True, None

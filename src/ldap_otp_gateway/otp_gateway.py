@@ -81,7 +81,8 @@ class OtpGateway(ProxyBase):
         logging.debug(f"otp_bind user:{user}")
 
         try:
-            if self.otp_backend.verify(user, password, otp):
+            access, error = self.otp_backend.verify(user, password, otp)
+            if access:
                 if response is not None:
                     logging.info("Successful OTP verification, forwarding backend response")
                     return response
@@ -90,8 +91,8 @@ class OtpGateway(ProxyBase):
                              "Generating an empty success response instead")
                 return pureldap.LDAPBindResponse(ldaperrors.Success.resultCode)
             else:
-                logging.warning("Failed OTP verification.")
-                return pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode)
+                logging.warning(f"Failed OTP verification: {error}")
+                return pureldap.LDAPBindResponse(ldaperrors.LDAPInvalidCredentials.resultCode, errorMessage=error)
         except Exception as e:
             logging.error("Error while performing OTP verification.")
             logging.error(e)
